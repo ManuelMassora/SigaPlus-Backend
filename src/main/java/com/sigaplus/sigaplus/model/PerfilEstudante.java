@@ -16,6 +16,15 @@ public class PerfilEstudante {
     private String anoAcademico;
     private String sobreMim;
     private String EspecialidadeEm;
+    private String urlImagem;
+
+    public String getUrlImagem() {
+        return urlImagem;
+    }
+
+    public void setUrlImagem(String urlImagem) {
+        this.urlImagem = urlImagem;
+    }
 
     public Long getId() {
         return id;

@@ -1,7 +1,6 @@
 package com.sigaplus.sigaplus.Controller;
 
 import com.sigaplus.sigaplus.dto.ChatDto;
-import com.sigaplus.sigaplus.model.Chat;
 import com.sigaplus.sigaplus.service.ChatService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

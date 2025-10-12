@@ -2,6 +2,8 @@ package com.sigaplus.sigaplus.model;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "postagem")
@@ -17,14 +19,11 @@ public class Postagem {
     private Topico topico;
     @Column(length = 1000, nullable = false)
     private String conteudo;
-    private int curtidas;
+    @OneToMany(mappedBy = "postagem", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<PostagemCurtida> curtidas = new HashSet<>();
 
     public int getCurtidas() {
-        return curtidas;
-    }
-
-    public void setCurtidas(int curtidas) {
-        this.curtidas = curtidas;
+        return curtidas.size();
     }
 
     private LocalDateTime dataCriacao = LocalDateTime.now();

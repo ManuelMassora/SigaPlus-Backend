@@ -2,6 +2,8 @@ package com.sigaplus.sigaplus.model;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "topico")
@@ -19,27 +21,23 @@ public class Topico {
     private String titulo;
     @Column(length = 500, nullable = true)
     private String descricao;
-    private int curtidas;
-    private int visualizacoes;
+    @OneToMany(mappedBy = "topico", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<TopicoCurtida> curtidas = new HashSet<>();
 
-    public int getCurtidas() {
-        return curtidas;
-    }
-
-    public void setCurtidas(int curtidas) {
-        this.curtidas = curtidas;
-    }
-
-    public int getVisualizacoes() {
-        return visualizacoes;
-    }
-
-    public void setVisualizacoes(int visualizacoes) {
-        this.visualizacoes = visualizacoes;
-    }
-
+    @OneToMany(mappedBy = "topico", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<TopicoVisualizacao> visualizacoes = new HashSet<>();
     private LocalDateTime dataCriacao = LocalDateTime.now();
     private boolean removido = false;
+
+    public int getTotalCurtidas() {
+        return this.curtidas.size();
+    }
+
+    public int getTotalVisualizacoes() {
+        return this.visualizacoes.size();
+    }
+
+
 
     public boolean isRemovido() {
         return removido;
