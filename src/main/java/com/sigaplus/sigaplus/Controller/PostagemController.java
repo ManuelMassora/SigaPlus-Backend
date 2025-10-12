@@ -64,4 +64,12 @@ public class PostagemController {
         Page<PostagemDto> postagens = postagemService.listarPorTopicoId(topicoId, pageable);
         return ResponseEntity.ok(postagens);
     }
+
+    @PostMapping("/{postagemId}/curtir")
+    public ResponseEntity<Void> curtir(
+            JwtAuthenticationToken token,
+            @PathVariable long postagemId) {
+        postagemService.curtir(token, postagemId);
+        return ResponseEntity.ok().build();
+    }
 }

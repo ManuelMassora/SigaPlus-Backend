@@ -20,7 +20,6 @@ public class Comentario {
     private Comentario comentarioRespondido; // Pode ser vazio
     @Column(length = 1000, nullable = false)
     private String conteudo;
-    private int curtidas;
     private LocalDateTime dataCriacao = LocalDateTime.now();
     private boolean removido = false;
 

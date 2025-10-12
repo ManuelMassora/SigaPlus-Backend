@@ -4,15 +4,18 @@ import com.sigaplus.sigaplus.dto.CriarPostagem;
 import com.sigaplus.sigaplus.dto.PerfilEstudanteDto;
 import com.sigaplus.sigaplus.dto.PostagemDto;
 import com.sigaplus.sigaplus.model.Postagem;
+import com.sigaplus.sigaplus.model.PostagemCurtida;
 import com.sigaplus.sigaplus.model.Usuario;
 import com.sigaplus.sigaplus.repo.*;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
+import org.springframework.http.HttpStatus;
 import jakarta.ws.rs.ForbiddenException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class PostagemService {
@@ -73,6 +76,7 @@ public class PostagemService {
                 postagem.getId(),
                 postagem.getConteudo(),
                 postagem.getDataCriacao(),
+                postagem.getCurtidas(),
                 postagem.getTopico().getId(),
                 new PerfilEstudanteDto(
                         perfilEstudante.getNome(),
@@ -97,6 +101,7 @@ public class PostagemService {
                     postagem.getId(),
                     postagem.getConteudo(),
                     postagem.getDataCriacao(),
+                    postagem.getCurtidas(),
                     postagem.getTopico().getId(),
                     new PerfilEstudanteDto(
                             perfilEstudante.getNome(),
@@ -108,6 +113,20 @@ public class PostagemService {
                     )
             );
         });
+    }
+
+    @Transactional
+    public void curtir(JwtAuthenticationToken token, long postagemId) {
+        var usuario = getUserByToken(token);
+        Postagem postagem = postagemRepository.findByIdAndRemovidoIsFalse(postagemId)
+                .orElseThrow(() -> new EntityNotFoundException("postagem nao econtrada"));
+        if (postagemCurtidaRepository.existsByPostagemIdAndUsuarioId(postagem.getId(), usuario.getId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Usuário já contém uma curtida");
+        }
+        PostagemCurtida postagemCurtida = new PostagemCurtida();
+        postagemCurtida.setPostagem(postagem);
+        postagemCurtida.setUsuario(usuario);
+        postagemCurtidaRepository.save(postagemCurtida);
     }
 
     private Usuario getUserByToken(JwtAuthenticationToken token) {

@@ -2,12 +2,10 @@ package com.sigaplus.sigaplus.service;
 
 import com.sigaplus.sigaplus.dto.EnviarMensagemDto;
 import com.sigaplus.sigaplus.dto.MensagemDto;
-import com.sigaplus.sigaplus.model.Chat;
-import com.sigaplus.sigaplus.model.Mensagem;
-import com.sigaplus.sigaplus.model.Role;
-import com.sigaplus.sigaplus.model.Usuario;
+import com.sigaplus.sigaplus.model.*;
 import com.sigaplus.sigaplus.repo.ChatRepository;
 import com.sigaplus.sigaplus.repo.MensagemRepository;
+import com.sigaplus.sigaplus.repo.NotificacaoRepository;
 import com.sigaplus.sigaplus.repo.UsuarioRepository;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
@@ -22,11 +20,16 @@ public class MensagemService {
     private final MensagemRepository mensagemRepository;
     private final ChatRepository chatRepository;
     private final UsuarioRepository usuarioRepository;
+    private final NotificacaoRepository notificacaoRepository;
 
-    public MensagemService(MensagemRepository mensagemRepository, ChatRepository chatRepository, UsuarioRepository usuarioRepository) {
+    public MensagemService(MensagemRepository mensagemRepository,
+                           ChatRepository chatRepository,
+                           UsuarioRepository usuarioRepository,
+                           NotificacaoRepository notificacaoRepository) {
         this.mensagemRepository = mensagemRepository;
         this.chatRepository = chatRepository;
         this.usuarioRepository = usuarioRepository;
+        this.notificacaoRepository = notificacaoRepository;
     }
 
     @Transactional
@@ -51,6 +54,7 @@ public class MensagemService {
         mensagem.setEmissor(estudante);
         mensagem.setChat(chat);
         var mensagemSalva = mensagemRepository.save(mensagem);
+        notificar(chat.getPsicologo(), "Você tem novas mensagens no chat de apoio");
         return new MensagemDto(
                 mensagemSalva.getId(),
                 mensagemSalva.getTexto(),
@@ -87,6 +91,8 @@ public class MensagemService {
         mensagem.setEmissor(psicologo);
         mensagem.setChat(chat);
         var mensagemSalva = mensagemRepository.save(mensagem);
+
+        notificar(chat.getUsuario1(), "Você tem novas mensagens no chat de apoio");
         return new MensagemDto(
                 mensagemSalva.getId(),
                 mensagemSalva.getTexto(),
@@ -97,7 +103,7 @@ public class MensagemService {
 
     public List<MensagemDto> listarMensagensDoEstudante(JwtAuthenticationToken token) {
         Long estudanteId = Long.parseLong(token.getName());
-        Usuario estudante = usuarioRepository.findById(estudanteId)
+        usuarioRepository.findById(estudanteId)
                 .orElseThrow(() -> new EntityNotFoundException("Estudante com ID " + estudanteId + " não encontrado."));
 
         Chat chat = chatRepository.findByUsuario1Id(estudanteId)
@@ -137,5 +143,12 @@ public class MensagemService {
                 mensagem.getEmissor().getId(),
                 mensagem.getData()
         )).toList();
+    }
+
+    private void notificar(Usuario destinatario, String texto) {
+        Notificacao notificacao = new Notificacao();
+        notificacao.setUsuario(destinatario);
+        notificacao.setTexto(texto);
+        notificacaoRepository.save(notificacao);
     }
 }
