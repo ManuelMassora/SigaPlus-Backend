@@ -7,7 +7,7 @@ import com.sigaplus.sigaplus.repo.UsuarioRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Set;
 
@@ -16,11 +16,11 @@ public class AdminUserConfig implements CommandLineRunner {
 
     private final UsuarioRepository userRepo;
     private final RoleRepository roleRepo;
-    private BCryptPasswordEncoder passwordEncoder;
+    private PasswordEncoder passwordEncoder;
 
     public AdminUserConfig(UsuarioRepository userRepository,
                            RoleRepository roleRepository,
-                           BCryptPasswordEncoder passwordEncoder) {
+                           PasswordEncoder passwordEncoder) {
         this.userRepo = userRepository;
         this.roleRepo = roleRepository;
         this.passwordEncoder = passwordEncoder;
@@ -39,10 +39,13 @@ public class AdminUserConfig implements CommandLineRunner {
             rolePsicologo.setName("PSICOLOGO");
             Role roleEstudante = new Role();
             roleEstudante.setName("ESTUDANTE");
+            Role roleSSR = new Role();
+            roleSSR.setName("SSR");
             roleRepo.save(roleAdm);
             roleRepo.save(roleProfissional);
             roleRepo.save(rolePsicologo);
             roleRepo.save(roleEstudante);
+            roleRepo.save(roleSSR);
             System.out.println("Roles criados com sucesso");
         }
 

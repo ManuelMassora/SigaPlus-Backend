@@ -1,4 +1,4 @@
-package com.sigaplus.sigaplus.config.handler;
+package com.sigaplus.sigaplus.config;
 
 import com.sigaplus.sigaplus.model.Usuario;
 import com.sigaplus.sigaplus.repo.UsuarioRepository;

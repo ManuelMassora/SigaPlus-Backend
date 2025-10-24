@@ -2,7 +2,9 @@ package com.sigaplus.sigaplus.Controller;
 
 import com.sigaplus.sigaplus.dto.ComentarioDto;
 import com.sigaplus.sigaplus.dto.CriarComentario;
+import com.sigaplus.sigaplus.model.Usuario;
 import com.sigaplus.sigaplus.service.ComentarioService;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.data.domain.Page;
@@ -22,27 +24,27 @@ public class ComentarioController {
 
     @PostMapping("/{postagemId}")
     public ResponseEntity<Void> criar(
-            JwtAuthenticationToken token,
+            @AuthenticationPrincipal Usuario usuario,
             @PathVariable long postagemId,
             @RequestBody CriarComentario dto) {
-        comentarioService.criar(token, postagemId, dto);
+        comentarioService.criar(usuario, postagemId, dto);
         return ResponseEntity.ok().build();
     }
 
     @PutMapping("/{comentarioId}")
     public ResponseEntity<Void> editar(
-            JwtAuthenticationToken token,
+            @AuthenticationPrincipal Usuario usuario,
             @PathVariable long comentarioId,
             @RequestBody CriarComentario dto) {
-        comentarioService.editar(token, comentarioId, dto);
+        comentarioService.editar(usuario, comentarioId, dto);
         return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/{comentarioId}")
     public ResponseEntity<Void> remover(
-            JwtAuthenticationToken token,
+            @AuthenticationPrincipal Usuario usuario,
             @PathVariable long comentarioId) {
-        comentarioService.remover(token, comentarioId);
+        comentarioService.remover(usuario, comentarioId);
         return ResponseEntity.noContent().build();
     }
     

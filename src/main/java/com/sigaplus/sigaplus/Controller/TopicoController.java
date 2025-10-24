@@ -2,6 +2,7 @@ package com.sigaplus.sigaplus.Controller;
 
 import com.sigaplus.sigaplus.dto.CriarTopico;
 import com.sigaplus.sigaplus.dto.TopicoDto;
+import com.sigaplus.sigaplus.model.Usuario;
 import com.sigaplus.sigaplus.service.TopicoService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
@@ -10,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,27 +27,27 @@ public class TopicoController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public void criarTopico(
-            JwtAuthenticationToken token,
+            @AuthenticationPrincipal Usuario usuario,
             @RequestBody @Valid CriarTopico dto) {
 
-        topicoService.criarTopico(token, dto);
+        topicoService.criarTopico(usuario, dto);
     }
 
     @DeleteMapping("/{topicoId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void removerTopico(
-            JwtAuthenticationToken token,
+            @AuthenticationPrincipal Usuario usuario,
             @PathVariable long topicoId) {
-        topicoService.removerTopico(token, topicoId);
+        topicoService.removerTopico(usuario, topicoId);
     }
 
     @GetMapping("/{topicoId}")
     public ResponseEntity<TopicoDto> buscarTopico(
-            JwtAuthenticationToken token,
+            @AuthenticationPrincipal Usuario usuario,
             @PathVariable long topicoId) {
 
         try {
-            TopicoDto topico = topicoService.buscarTopico(token, topicoId);
+            TopicoDto topico = topicoService.buscarTopico(usuario, topicoId);
             return ResponseEntity.ok(topico);
         } catch (EntityNotFoundException e) {
             return ResponseEntity.notFound().build();
@@ -61,13 +63,31 @@ public class TopicoController {
         return ResponseEntity.ok(topicos);
     }
 
+    @GetMapping("my")
+    public ResponseEntity<Page<TopicoDto>> listarMeusTopicos(
+            @AuthenticationPrincipal Usuario usuario,
+            @PageableDefault(size = 10, sort = "dataCriacao") Pageable pageable) {
+
+        Page<TopicoDto> topicos = topicoService.listarMeusTopicos(usuario, pageable);
+        return ResponseEntity.ok(topicos);
+    }
+
+    @GetMapping("curtidos")
+    public ResponseEntity<Page<TopicoDto>> listarTopicosCurtidos(
+            @AuthenticationPrincipal Usuario usuario,
+            @PageableDefault(size = 10, sort = "dataCriacao") Pageable pageable) {
+
+        Page<TopicoDto> topicos = topicoService.listarTopicosCurtidos(usuario, pageable);
+        return ResponseEntity.ok(topicos);
+    }
+
     @PostMapping("/{topicoId}/curtir")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void curtirTopico(
-            JwtAuthenticationToken token,
+            @AuthenticationPrincipal Usuario usuario,
             @PathVariable long topicoId) {
 
-        topicoService.curtirTopico(token, topicoId);
+        topicoService.curtirTopico(usuario, topicoId);
     }
 
 }

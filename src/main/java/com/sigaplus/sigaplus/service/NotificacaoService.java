@@ -6,10 +6,8 @@ import com.sigaplus.sigaplus.repo.NotificacaoRepository;
 import com.sigaplus.sigaplus.repo.UsuarioRepository;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
-import jakarta.ws.rs.InternalServerErrorException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -23,8 +21,7 @@ public class NotificacaoService {
     }
 
     @Transactional
-    public NotificacaoDto buscar(JwtAuthenticationToken token, long notificacaoId) {
-        var usuario = getUserByToken(token);
+    public NotificacaoDto buscar(Usuario usuario, long notificacaoId) {
         var notificacao = notificacaoRepository.findByIdAndUsuarioId(notificacaoId, usuario.getId())
                 .orElseThrow(() -> new EntityNotFoundException("mensagem nao econtrada"));
 
@@ -36,33 +33,30 @@ public class NotificacaoService {
                 notificacao.getId(),
                 notificacao.getTexto(),
                 notificacao.getDataCriacao(),
-                notificacao.isLida()
+                notificacao.isLida(),
+                notificacao.getTipo().toString(),
+                notificacao.getReferenciaId()
         );
     }
 
-    public Page<NotificacaoDto> listar(JwtAuthenticationToken token, Pageable pageable) {
-        var usuario = getUserByToken(token);
+    public Page<NotificacaoDto> listar(Usuario usuario, Pageable pageable) {
         var notificacoes = notificacaoRepository.findAllByUsuarioId(usuario.getId(), pageable);
         if (notificacoes.isEmpty()) {
-            throw new EntityNotFoundException("nenhum notificacao");
+            throw new EntityNotFoundException("nenhuma notificacao");
         }
         return notificacoes.map(notificacao -> new NotificacaoDto(
                         notificacao.getId(),
                         notificacao.getTexto(),
                         notificacao.getDataCriacao(),
-                        notificacao.isLida()
+                        notificacao.isLida(),
+                        notificacao.getTipo().toString(),
+                        notificacao.getReferenciaId()
                 )
         );
     }
 
     @Transactional
-    public int marcarTodasComoLida(JwtAuthenticationToken token) {
-        long usuarioId = getUserByToken(token).getId();
-        return notificacaoRepository.marcarTodasComoLidas(usuarioId);
-    }
-
-    private Usuario getUserByToken(JwtAuthenticationToken token){
-        return usuarioRepository.findById(Long.parseLong(token.getName()))
-                .orElseThrow(() -> new InternalServerErrorException("usuario nao econtrado no token"));
+    public int marcarTodasComoLida(Usuario usuario) {
+        return notificacaoRepository.marcarTodasComoLidas(usuario.getId());
     }
 }

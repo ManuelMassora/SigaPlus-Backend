@@ -11,4 +11,5 @@ public interface PostagemRepository extends JpaRepository<Postagem, Long> {
     Optional<Postagem> findByIdAndRemovidoIsFalse(long id);
     Optional<Postagem> findByIdAndUsuarioIdAndRemovidoIsFalse(long postagemId, long usuarioId);
     Page<Postagem> findAllByTopicoIdAndRemovidoIsFalse(long topicoId, Pageable pageable);
+    Page<Postagem> findAllByUsuarioIdAndRemovidoFalse(long usuarioId, Pageable pageable);
 }

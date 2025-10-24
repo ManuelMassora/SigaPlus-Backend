@@ -2,10 +2,13 @@ package com.sigaplus.sigaplus.Controller;
 
 import com.sigaplus.sigaplus.dto.CriarEstudanteDto;
 import com.sigaplus.sigaplus.dto.CriarUsuarioDto;
+import com.sigaplus.sigaplus.model.Usuario;
 import com.sigaplus.sigaplus.service.UsuarioService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -17,9 +20,11 @@ public class UsuarioController {
         this.usuarioService = usuarioService;
     }
 
-    @PostMapping("cadastro")
-    public ResponseEntity<Void> criarEstudante(@RequestBody CriarEstudanteDto dto) {
-        usuarioService.CriarEstudante(dto);
+    @PutMapping("perfil")
+    @PreAuthorize("hasAnyAuthority('ESTUDANTE')")
+    public ResponseEntity<Void> criarEstudante(@AuthenticationPrincipal Usuario usuario,
+                                               @RequestBody CriarEstudanteDto dto) {
+        usuarioService.atualizarPerfilEstudante(usuario,dto);
         return ResponseEntity.ok().build();
     }
 

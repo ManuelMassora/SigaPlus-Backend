@@ -34,7 +34,8 @@ public class Role {
         ADMIN(1L),
         PROFISSIONAL(2L),
         PSICOLOGO(3L),
-        ESTUDANTE(3L);
+        ESTUDANTE(4L),
+        SSR(5L);
 
         long roleId;
 

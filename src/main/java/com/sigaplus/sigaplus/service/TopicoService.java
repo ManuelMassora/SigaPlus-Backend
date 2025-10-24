@@ -11,7 +11,6 @@ import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.ForbiddenException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -35,33 +34,30 @@ public class TopicoService {
     }
 
     @Transactional
-    public void criarTopico(JwtAuthenticationToken token, CriarTopico dto) {
-        Usuario criadorId = getUsuarioFromToken(token);
+    public void criarTopico(Usuario usuario, CriarTopico dto) {
         Topico topico = new Topico();
-        topico.setUsuario(criadorId);
+        topico.setUsuario(usuario);
         topico.setTitulo(dto.titulo());
         topico.setDescricao(dto.descricao());
         topicoRepository.save(topico);
     }
 
     @Transactional
-    public void removerTopico(JwtAuthenticationToken token, long topicoId){
-        long criadorId = getUsuarioFromToken(token).getId();
-        Topico topico = topicoRepository.findFirstByIdAndUsuarioIdAndRemovidoIsFalse(topicoId, criadorId)
+    public void removerTopico(Usuario usuario, long topicoId){
+        Topico topico = topicoRepository.findFirstByIdAndUsuarioIdAndRemovidoIsFalse(topicoId, usuario.getId())
                 .orElseThrow(() -> new ForbiddenException("sem permissao para apagar esse topico"));
         topico.setRemovido(true);
         topicoRepository.save(topico);
     }
 
     @Transactional
-    public TopicoDto buscarTopico(JwtAuthenticationToken token, long topicoId) {
-        Usuario vizualizador = getUsuarioFromToken(token);
+    public TopicoDto buscarTopico(Usuario usuario, long topicoId) {
         Topico topico = topicoRepository.findByIdAndRemovidoIsFalse(topicoId)
                 .orElseThrow(() -> new EntityNotFoundException("topico nao econtrado"));
-        if (!topicoVisualizacaoRepository.existsByTopicoIdAndUsuarioId(topico.getId(), vizualizador.getId())) {
+        if (!topicoVisualizacaoRepository.existsByTopicoIdAndUsuarioId(topico.getId(), usuario.getId())) {
             TopicoVisualizacao visualizacao = new TopicoVisualizacao();
             visualizacao.setTopico(topico);
-            visualizacao.setUsuario(vizualizador);
+            visualizacao.setUsuario(usuario);
             topicoVisualizacaoRepository.save(visualizacao);
         }
         var perfilEstudante = perfilEstudanteRepository.findByUsuarioId(topico.getUsuario().getId())
@@ -89,6 +85,20 @@ public class TopicoService {
             titulo = "";
         }
         Page<Topico> topicos = topicoRepository.findAllByTituloContainingAndRemovidoIsFalse(titulo, pageable);
+        return getTopicoDtos(topicos);
+    }
+
+    public Page<TopicoDto> listarMeusTopicos(Usuario usuario, Pageable pageable) {
+        Page<Topico> topicos = topicoRepository.findByUsuarioIdAndRemovidoFalse(usuario.getId(), pageable);
+        return getTopicoDtos(topicos);
+    }
+
+    public Page<TopicoDto> listarTopicosCurtidos(Usuario usuario, Pageable pageable) {
+        Page<Topico> topicos = topicoRepository.findTopicosCurtidosPorUsuario(usuario.getId(), pageable);
+        return getTopicoDtos(topicos);
+    }
+
+    private Page<TopicoDto> getTopicoDtos(Page<Topico> topicos) {
         return topicos.map(topico -> {
             PerfilEstudante perfilEstudante = perfilEstudanteRepository.findByUsuarioId(topico.getUsuario().getId())
                     .orElseThrow(() -> new EntityNotFoundException("erro inesperado"));
@@ -113,8 +123,7 @@ public class TopicoService {
     }
 
     @Transactional
-    public void curtirTopico(JwtAuthenticationToken token, long topicoId){
-        Usuario usuario = getUsuarioFromToken(token);
+    public void curtirTopico(Usuario usuario, long topicoId){
         Topico topico = topicoRepository.findById(topicoId)
                 .orElseThrow(() -> new EntityNotFoundException("topico nao econtrado"));
         if (topicoCurtidaRepository.existsByTopicoIdAndUsuarioId(topico.getId(), usuario.getId())) {
@@ -124,10 +133,5 @@ public class TopicoService {
         curtida.setTopico(topico);
         curtida.setUsuario(usuario);
         topicoCurtidaRepository.save(curtida);
-    }
-
-    private Usuario getUsuarioFromToken(JwtAuthenticationToken token) {
-        return usuarioRepository.findById(Long.parseLong(token.getName()))
-                .orElseThrow(() -> new EntityNotFoundException("erro inesperado: Usuário não encontrado no token."));
     }
 }

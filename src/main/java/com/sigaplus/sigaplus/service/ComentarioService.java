@@ -3,10 +3,7 @@ package com.sigaplus.sigaplus.service;
 import com.sigaplus.sigaplus.dto.ComentarioDto;
 import com.sigaplus.sigaplus.dto.CriarComentario;
 import com.sigaplus.sigaplus.dto.PerfilEstudanteDto;
-import com.sigaplus.sigaplus.model.Comentario;
-import com.sigaplus.sigaplus.model.Notificacao;
-import com.sigaplus.sigaplus.model.Postagem;
-import com.sigaplus.sigaplus.model.Usuario;
+import com.sigaplus.sigaplus.model.*;
 import com.sigaplus.sigaplus.repo.*;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
@@ -14,7 +11,6 @@ import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.InternalServerErrorException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -38,8 +34,7 @@ public class ComentarioService {
     }
 
     @Transactional
-    public void criar(JwtAuthenticationToken token, long postagemId, CriarComentario dto) {
-        var usuario = getUserByToken(token);
+    public void criar(Usuario usuario, long postagemId, CriarComentario dto) {
         var postagem = buscarPostagemAtiva(postagemId);
 
         if (dto.conteudo() == null || dto.conteudo().isBlank()) {
@@ -56,16 +51,18 @@ public class ComentarioService {
 
             String texto = String.format("%s respondeu ao seu comentário no topico '%s'",
                     usuario.getNome(), postagem.getTopico().getTitulo());
-            notificarUsuario(comentarioRespondido.getUsuario(), texto);
+            notificarUsuario(comentarioRespondido.getUsuario(), texto, comentarioRespondido.getId());
             comentario.setComentarioRespondido(comentarioRespondido);
         }
         comentarioRepository.save(comentario);
     }
 
-    private void notificarUsuario(Usuario destinatario, String texto) {
+    private void notificarUsuario(Usuario destinatario, String texto, long referenciaId) {
         Notificacao notificacao = new Notificacao();
         notificacao.setUsuario(destinatario);
         notificacao.setTexto(texto);
+        notificacao.setTipo(TipoNotificacao.RESPOSTA);
+        notificacao.setReferenciaId(referenciaId);
         notificacaoRepository.save(notificacao);
     }
 
@@ -80,8 +77,7 @@ public class ComentarioService {
     }
 
     @Transactional
-    public void remover(JwtAuthenticationToken token, long comentarioId) {
-        var usuario = getUserByToken(token);
+    public void remover(Usuario usuario, long comentarioId) {
         var comentario = comentarioRepository.findByIdAndUsuarioIdAndRemovidoIsFalse(comentarioId, usuario.getId())
                 .orElseThrow(() -> new ForbiddenException("sem permissao para apagar esse comentario"));
         comentario.setRemovido(true);
@@ -89,8 +85,7 @@ public class ComentarioService {
     }
 
     @Transactional
-    public void editar(JwtAuthenticationToken token, long comentarioId, CriarComentario dto) {
-        var usuario = getUserByToken(token);
+    public void editar(Usuario usuario, long comentarioId, CriarComentario dto) {
         var comentario = comentarioRepository.findByIdAndUsuarioIdAndRemovidoIsFalse(comentarioId, usuario.getId())
                 .orElseThrow(() -> new ForbiddenException("sem permissao para editar esse comentario"));
         comentario.setConteudo(dto.conteudo());
@@ -137,10 +132,5 @@ public class ComentarioService {
                         perfilEstudante.getUrlImagem()
                 )
         );
-    }
-
-    private Usuario getUserByToken(JwtAuthenticationToken token){
-        return usuarioRepository.findById(Long.parseLong(token.getName()))
-                .orElseThrow(() -> new InternalServerErrorException("usuario nao econtrado no token"));
     }
 }

@@ -1,59 +1,43 @@
 package com.sigaplus.sigaplus.service;
 
-import com.sigaplus.sigaplus.dto.LoginRequest;
-import com.sigaplus.sigaplus.dto.LoginResponse;
-import com.sigaplus.sigaplus.model.Role;
+import com.sigaplus.sigaplus.model.Usuario;
 import com.sigaplus.sigaplus.repo.UsuarioRepository;
-import jakarta.validation.Valid;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.oauth2.jwt.JwtClaimsSet;
-import org.springframework.security.oauth2.jwt.JwtEncoder;
-import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.util.stream.Collectors;
+// Supondo que você tem um DTO de Requisição LoginRequest
+// Supondo que você tem um JwtTokenService injetado
 
 @Service
 public class AuthService {
-    private final JwtEncoder jwtEncoder;
-    private final BCryptPasswordEncoder passwordEncoder;
-    private final UsuarioRepository userRepo;
 
-    public AuthService(JwtEncoder jwtEncoder, BCryptPasswordEncoder passwordEncoder, UsuarioRepository userRepo) {
-        this.jwtEncoder = jwtEncoder;
-        this.passwordEncoder = passwordEncoder;
-        this.userRepo = userRepo;
+    private final AuthenticationManager authenticationManager;
+    private final JwtTokenService jwtService;
+    private final UsuarioRepository usuarioRepository;
+
+    public AuthService(AuthenticationManager authenticationManager,
+                       JwtTokenService jwtService, UsuarioRepository usuarioRepository) {
+        this.authenticationManager = authenticationManager;
+        this.jwtService = jwtService;
+        this.usuarioRepository = usuarioRepository;
     }
 
-    public LoginResponse authenicateCliente(@Valid LoginRequest loginRequest) {
-        var user = userRepo.findByEmail(loginRequest.email())
-                .orElseThrow(() -> new BadCredentialsException("Credenciais invalidas"));
+    public String authenticate(String email, String senha) {
+        // 1. Autentica o usuário (lança exceção se as credenciais forem inválidas)
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(email, senha)
+        );
 
-        if(!user.isLoginCorrect(loginRequest, passwordEncoder)) {
-            throw new BadCredentialsException("Credenciais invalidas");
-        }
+        // 2. Busca o objeto Usuario completo (com roles, etc.) para gerar o token.
+        // Já sabemos que ele existe, pois a autenticação foi bem-sucedida.
+        Usuario usuario = usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado após autenticação."));
 
-        var now = Instant.now();
-        var expiredIn = 1L; // 1 Hora de duracao
-
-        var roles = user.getRoles()
-                .stream()
-                .map(Role::getName)
-                .collect(Collectors.toList());
-
-        var claims = JwtClaimsSet.builder()
-                .issuer("mybackend")
-                .subject(String.valueOf(user.getId()))
-                .issuedAt(now)
-                .expiresAt(now.plus(Duration.ofHours(expiredIn)))
-                .claim("authorities", roles)
-                .build();
-
-        var jwtValue = jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
-
-        return new LoginResponse(jwtValue, expiredIn);
+        // 3. Gera e retorna o JWT, passando o objeto Usuario completo.
+        // O JwtTokenService usará o email, roles, etc., do objeto Usuario.
+        return jwtService.generateToken(usuario);
     }
 }

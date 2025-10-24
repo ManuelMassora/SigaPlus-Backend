@@ -1,10 +1,12 @@
 package com.sigaplus.sigaplus.Controller;
 
 import com.sigaplus.sigaplus.dto.NotificacaoDto;
+import com.sigaplus.sigaplus.model.Usuario;
 import com.sigaplus.sigaplus.service.NotificacaoService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,18 +21,18 @@ public class NotificacaoController {
 
     @GetMapping("/{id}")
     public ResponseEntity<NotificacaoDto> buscar(
-            JwtAuthenticationToken token,
+            @AuthenticationPrincipal Usuario usuario,
             @PathVariable long id){
-        return ResponseEntity.ok(notificacaoService.buscar(token, id));
+        return ResponseEntity.ok(notificacaoService.buscar(usuario, id));
     }
 
     @GetMapping
-    public ResponseEntity<Page<NotificacaoDto>> listar(JwtAuthenticationToken token, Pageable pageable) {
-        return ResponseEntity.ok(notificacaoService.listar(token, pageable));
+    public ResponseEntity<Page<NotificacaoDto>> listar(@AuthenticationPrincipal Usuario usuario, Pageable pageable) {
+        return ResponseEntity.ok(notificacaoService.listar(usuario, pageable));
     }
 
     @PostMapping("/marcartodas")
-    public ResponseEntity<Integer> marcarTodasComoLidas(JwtAuthenticationToken token) {
-        return ResponseEntity.ok(notificacaoService.marcarTodasComoLida(token));
+    public ResponseEntity<Integer> marcarTodasComoLidas(@AuthenticationPrincipal Usuario usuario) {
+        return ResponseEntity.ok(notificacaoService.marcarTodasComoLida(usuario));
     }
 }

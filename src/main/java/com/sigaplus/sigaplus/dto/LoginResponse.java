@@ -1,4 +1,6 @@
 package com.sigaplus.sigaplus.dto;
 
-public record LoginResponse(String acessToken, Long expiresIn) {
+import java.util.List;
+
+public record LoginResponse(List<String> userRoles, Long expiresIn) {
 }

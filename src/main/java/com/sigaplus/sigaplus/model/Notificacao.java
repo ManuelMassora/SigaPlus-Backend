@@ -16,6 +16,25 @@ public class Notificacao {
     private String texto;
     private LocalDateTime dataCriacao = LocalDateTime.now();
     private boolean lida = false;
+    @Enumerated(EnumType.STRING)
+    private TipoNotificacao tipo;
+    private long referenciaId;
+
+    public TipoNotificacao getTipo() {
+        return tipo;
+    }
+
+    public void setTipo(TipoNotificacao tipo) {
+        this.tipo = tipo;
+    }
+
+    public long getReferenciaId() {
+        return referenciaId;
+    }
+
+    public void setReferenciaId(long referenciaId) {
+        this.referenciaId = referenciaId;
+    }
 
     public long getId() {
         return id;

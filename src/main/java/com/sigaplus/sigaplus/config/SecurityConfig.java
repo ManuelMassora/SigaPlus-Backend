@@ -1,60 +1,79 @@
 package com.sigaplus.sigaplus.config;
+import com.sigaplus.sigaplus.repo.UsuarioRepository;
+import com.sigaplus.sigaplus.service.CustomOidcUserService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.jwt.JwtEncoder;
-import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
-import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
-import com.nimbusds.jose.jwk.JWK;
-import com.nimbusds.jose.jwk.JWKSet;
-import com.nimbusds.jose.jwk.RSAKey;
-import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
-import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
-import java.security.interfaces.RSAPrivateKey;
-import java.security.interfaces.RSAPublicKey;
 import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
+    private final CustomOidcUserService customOidcUserService;
+    private final JwtAuthenticationFilter jwtAuthFilter;
+    private final UsuarioRepository usuarioRepository;
+    private final JwtAuthenticationSuccessHandler jwtSuccessHandler;
 
-    private final RSAPublicKey publicKey;
-
-    private final RSAPrivateKey privateKey;
-
-    public SecurityConfig(KeyLoader keyLoader) throws Exception {
-        this.publicKey = keyLoader.loadPublicKey("classpath:keypub.pem");
-        this.privateKey = keyLoader.loadPrivateKey("classpath:newkey.pri.pem");
+    public SecurityConfig(
+                          CustomOidcUserService customOidcUserService,
+                          JwtAuthenticationFilter jwtAuthFilter,
+                          JwtAuthenticationSuccessHandler jwtSuccessHandler,
+                          UsuarioRepository usuarioRepository) throws Exception {
+        this.customOidcUserService = customOidcUserService;
+        this.jwtAuthFilter = jwtAuthFilter;
+        this.jwtSuccessHandler = jwtSuccessHandler;
+        this.usuarioRepository = usuarioRepository;
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .cors(Customizer.withDefaults())
+                .csrf(csrf -> csrf.disable())
+
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers(HttpMethod.POST, "/cadastro").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/auth").permitAll()
+                        .requestMatchers("/", "/error", "/webjars/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/auth").permitAll() // Login Email/Senha
+                        .requestMatchers("/oauth2/authorization/**", "/login/oauth2/code/**").permitAll() // OAuth2 Login
                         .anyRequest().authenticated()
                 )
-                .csrf(csrf -> csrf.disable())
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))
+
+                .oauth2Login(oauth2 -> oauth2
+                        .userInfoEndpoint(userInfo -> userInfo.oidcUserService(customOidcUserService))
+                        .successHandler(jwtSuccessHandler)
+                )
+
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
         return http.build();
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
+    }
+
+    @Bean
+    public UserDetailsService userDetailsService() {
+        return email -> usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado: " + email));
     }
 
     @Bean
@@ -67,33 +86,5 @@ public class SecurityConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
-    }
-
-    @Bean
-    public JwtDecoder jwtDecoder() {
-        return NimbusJwtDecoder.withPublicKey(publicKey).build();
-    }
-
-    @Bean
-    public JwtEncoder jwtEncoder() {
-        JWK jwk = new RSAKey.Builder(this.publicKey).privateKey(this.privateKey).build();
-        var jwks = new ImmutableJWKSet<>(new JWKSet(jwk));
-        return new NimbusJwtEncoder(jwks);
-    }
-
-    @Bean
-    public BCryptPasswordEncoder bCryptPasswordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
-
-    @Bean
-    public JwtAuthenticationConverter jwtAuthenticationConverter() {
-        JwtGrantedAuthoritiesConverter grantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
-        grantedAuthoritiesConverter.setAuthorityPrefix(""); // Remove o prefixo padrão "SCOPE_"
-        grantedAuthoritiesConverter.setAuthoritiesClaimName("authorities"); // Usa "authorities"
-
-        JwtAuthenticationConverter jwtConverter = new JwtAuthenticationConverter();
-        jwtConverter.setJwtGrantedAuthoritiesConverter(grantedAuthoritiesConverter);
-        return jwtConverter;
     }
 }

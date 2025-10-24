@@ -13,7 +13,6 @@ import org.springframework.http.HttpStatus;
 import jakarta.ws.rs.ForbiddenException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -38,8 +37,7 @@ public class PostagemService {
     }
 
     @Transactional
-    public void criar(JwtAuthenticationToken token, long topicoId, CriarPostagem dto) {
-        var usuario = getUserByToken(token);
+    public void criar(Usuario usuario, long topicoId, CriarPostagem dto) {
         var topico = topicoRepository.findByIdAndRemovidoIsFalse(topicoId)
                 .orElseThrow(() -> new EntityNotFoundException("Topico nao existente"));
         Postagem postagem = new Postagem();
@@ -50,18 +48,16 @@ public class PostagemService {
     }
 
     @Transactional
-    public void remover(JwtAuthenticationToken token, long postagemId) {
-        long usuarioId = getUserByToken(token).getId();
-        Postagem postagem = postagemRepository.findByIdAndUsuarioIdAndRemovidoIsFalse(postagemId, usuarioId)
+    public void remover(Usuario usuario, long postagemId) {
+        Postagem postagem = postagemRepository.findByIdAndUsuarioIdAndRemovidoIsFalse(postagemId, usuario.getId())
                 .orElseThrow(() -> new ForbiddenException("sem permissao para apagar esse topico"));
         postagem.setRemovido(true);
         postagemRepository.save(postagem);
     }
 
     @Transactional
-    public void editar(JwtAuthenticationToken token, long postagemId, CriarPostagem dto) {
-        long usuarioId = getUserByToken(token).getId();
-        Postagem postagem = postagemRepository.findByIdAndUsuarioIdAndRemovidoIsFalse(postagemId, usuarioId)
+    public void editar(Usuario usuario, long postagemId, CriarPostagem dto) {
+        Postagem postagem = postagemRepository.findByIdAndUsuarioIdAndRemovidoIsFalse(postagemId, usuario.getId())
                 .orElseThrow(() -> new ForbiddenException("sem permissao para editar esse topico"));
         postagem.setConteudo(dto.conteudo());
         postagemRepository.save(postagem);
@@ -70,6 +66,18 @@ public class PostagemService {
     public PostagemDto buscar(long postagemId) {
         Postagem postagem = postagemRepository.findByIdAndRemovidoIsFalse(postagemId)
                 .orElseThrow(() -> new EntityNotFoundException("postagem nao econtrada"));
+        return getPostagemDto(postagem);
+    }
+
+    public Page<PostagemDto> listarPorTopicoId(long topicoId, Pageable pageable) {
+        return getPostagemDtos(pageable, topicoId);
+    }
+
+    public Page<PostagemDto> listarMinhasPostagens(Usuario usuario, Pageable pageable) {
+        return getPostagemDtos(pageable, usuario.getId());
+    }
+
+    private PostagemDto getPostagemDto(Postagem postagem) {
         var perfilEstudante = perfilEstudanteRepository.findByUsuarioId(postagem.getUsuario().getId())
                 .orElseThrow(() -> new EntityNotFoundException("erro inesperado"));
         return new PostagemDto(
@@ -89,35 +97,16 @@ public class PostagemService {
         );
     }
 
-    public Page<PostagemDto> listarPorTopicoId(long topicoId, Pageable pageable) {
-        var postagens = postagemRepository.findAllByTopicoIdAndRemovidoIsFalse(topicoId, pageable);
+    private Page<PostagemDto> getPostagemDtos(Pageable pageable, long usuarioId) {
+        var postagens = postagemRepository.findAllByTopicoIdAndRemovidoIsFalse(usuarioId, pageable);
         if (postagens.isEmpty()) {
             throw new EntityNotFoundException("nenhuma postagem econtrada");
         }
-        return postagens.map(postagem -> {
-            var perfilEstudante = perfilEstudanteRepository.findByUsuarioId(postagem.getUsuario().getId())
-                    .orElseThrow(() -> new EntityNotFoundException("erro inesperado"));
-            return new PostagemDto(
-                    postagem.getId(),
-                    postagem.getConteudo(),
-                    postagem.getDataCriacao(),
-                    postagem.getCurtidas(),
-                    postagem.getTopico().getId(),
-                    new PerfilEstudanteDto(
-                            perfilEstudante.getNome(),
-                            perfilEstudante.getCurso(),
-                            perfilEstudante.getAnoAcademico(),
-                            perfilEstudante.getSobreMim(),
-                            perfilEstudante.getEspecialidadeEm(),
-                            perfilEstudante.getUrlImagem()
-                    )
-            );
-        });
+        return postagens.map(this::getPostagemDto);
     }
 
     @Transactional
-    public void curtir(JwtAuthenticationToken token, long postagemId) {
-        var usuario = getUserByToken(token);
+    public void curtir(Usuario usuario, long postagemId) {
         Postagem postagem = postagemRepository.findByIdAndRemovidoIsFalse(postagemId)
                 .orElseThrow(() -> new EntityNotFoundException("postagem nao econtrada"));
         if (postagemCurtidaRepository.existsByPostagemIdAndUsuarioId(postagem.getId(), usuario.getId())) {
@@ -127,11 +116,5 @@ public class PostagemService {
         postagemCurtida.setPostagem(postagem);
         postagemCurtida.setUsuario(usuario);
         postagemCurtidaRepository.save(postagemCurtida);
-    }
-
-    private Usuario getUserByToken(JwtAuthenticationToken token) {
-        Usuario usuario = usuarioRepository.findById(Long.parseLong(token.getName()))
-                .orElseThrow(() -> new EntityNotFoundException("Usuario nao econtrado no Token"));
-        return usuario;
     }
 }

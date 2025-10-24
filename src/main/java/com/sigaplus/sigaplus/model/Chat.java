@@ -22,6 +22,16 @@ public class Chat {
     @OneToMany(mappedBy = "chat", cascade = CascadeType.ALL)
     private List<Mensagem> mensagens;
     private boolean removido = false;
+    @Enumerated(EnumType.STRING)
+    private TipoChat tipoChat;
+
+    public TipoChat getTipoChat() {
+        return tipoChat;
+    }
+
+    public void setTipoChat(TipoChat tipoChat) {
+        this.tipoChat = tipoChat;
+    }
 
     public Usuario getUsuario1() {
         return usuario1;
