@@ -3,8 +3,6 @@ target/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
-!**/main/resources/newkey.pri.pem
-!**/main/resources/keypub.pem
 
 ### STS ###
 .apt_generated
@@ -33,3 +31,9 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Local Development ###
+src/main/resources/application.properties.dev
+src/main/resources/pri.dev
+src/main/resources/pub.dev
+
