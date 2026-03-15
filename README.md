@@ -236,3 +236,248 @@ Maputo, Mozambique
 ---
 
 > Built with Java · Spring Boot · Maven
+
+
+
+###################################################################
+
+
+
+# SigaPlus Backend
+
+> **Sistema Integrado de Gestão Académica (SIGA+)** — Backend em Java/Spring Boot para gerir operações académicas incluindo estudantes, matrículas, cursos, notas e fluxos institucionais.
+
+---
+
+## Índice
+
+- [Visão Geral](#visão-geral)
+- [Stack Tecnológica](#stack-tecnológica)
+- [Estrutura do Projecto](#estrutura-do-projecto)
+- [Como Começar](#como-começar)
+  - [Pré-requisitos](#pré-requisitos)
+  - [Executar com Maven](#executar-com-maven)
+  - [Executar com o Maven Wrapper](#executar-com-o-maven-wrapper)
+- [Variáveis de Ambiente](#variáveis-de-ambiente)
+- [Endpoints da API](#endpoints-da-api)
+- [Executar Testes](#executar-testes)
+- [Roadmap](#roadmap)
+- [Autor](#autor)
+
+---
+
+## Visão Geral
+
+**SigaPlus** é um sistema backend desenhado para alimentar plataformas de gestão académica em escolas e universidades. Gere o ciclo de vida completo das operações académicas — desde o registo de estudantes e matrículas até à gestão de cursos, lançamento de notas e geração de relatórios.
+
+Construído com **Java** e **Spring Boot** seguindo uma arquitectura em camadas limpa (Controller → Service → Repository), o SigaPlus foi desenhado para ser robusto, fácil de manter e pronto para deployment em escala institucional.
+
+Responsabilidades principais:
+- Gestão de perfis de estudantes e funcionários
+- Gestão de cursos e currículos
+- Ciclo de vida de matrículas e anos lectivos
+- Lançamento e consulta de notas
+- Controlo de acesso baseado em funções (estudantes, docentes, administradores)
+
+---
+
+## Stack Tecnológica
+
+| Camada | Tecnologia |
+|---|---|
+| Linguagem | Java 17+ |
+| Framework | Spring Boot |
+| Build Tool | Maven (via Maven Wrapper) |
+| ORM | Spring Data JPA / Hibernate |
+| Base de Dados | PostgreSQL / MySQL |
+| Segurança | Spring Security + JWT |
+| Arquitectura | Camadas (Controller → Service → Repository) |
+| Testes | JUnit 5 + Mockito |
+
+---
+
+## Estrutura do Projecto
+
+```
+SigaPlus-Backend/
+├── src/
+│   ├── main/
+│   │   ├── java/
+│   │   │   └── com/sigaplus/         # Código-fonte da aplicação
+│   │   │       ├── controller/       # Controllers REST (endpoints da API)
+│   │   │       ├── service/          # Camada de lógica de negócio
+│   │   │       ├── repository/       # Camada de acesso a dados (JPA)
+│   │   │       ├── model/            # Entidades de domínio
+│   │   │       ├── dto/              # Data Transfer Objects
+│   │   │       ├── security/         # JWT, filtros de autenticação
+│   │   │       └── config/           # Beans de configuração
+│   │   └── resources/
+│   │       ├── application.properties        # Configuração principal
+│   │       └── application-dev.properties    # Configuração de desenvolvimento
+│   └── test/
+│       └── java/                     # Testes unitários e de integração
+├── .mvn/wrapper/                     # Configuração do Maven Wrapper
+├── pom.xml                           # Dependências e configuração de build Maven
+├── mvnw                              # Script Maven Wrapper (Unix)
+├── mvnw.cmd                          # Script Maven Wrapper (Windows)
+└── .gitignore
+```
+
+---
+
+## Como Começar
+
+### Pré-requisitos
+
+- [Java 17+](https://adoptium.net/)
+- [Maven 3.8+](https://maven.apache.org/) *(opcional — o projecto inclui o Maven Wrapper)*
+- Uma instância a correr de PostgreSQL ou MySQL
+- [Git](https://git-scm.com/)
+
+### Executar com Maven
+
+```bash
+# Clonar o repositório
+git clone https://github.com/ManuelMassora/SigaPlus-Backend.git
+cd SigaPlus-Backend
+
+# Configurar o ambiente (ver secção abaixo)
+cp src/main/resources/application.properties src/main/resources/application-local.properties
+# Editar application-local.properties com as credenciais da base de dados
+
+# Compilar e executar
+mvn spring-boot:run
+```
+
+### Executar com o Maven Wrapper
+
+Não é necessário ter o Maven instalado globalmente — utiliza o wrapper incluído:
+
+```bash
+# Unix / macOS / Linux
+./mvnw spring-boot:run
+
+# Windows
+mvnw.cmd spring-boot:run
+```
+
+A API ficará disponível em `http://localhost:8080`.
+
+Para gerar um JAR de produção:
+
+```bash
+./mvnw clean package -DskipTests
+java -jar target/sigaplus-*.jar
+```
+
+---
+
+## Variáveis de Ambiente
+
+Configura a base de dados e as definições de segurança em `src/main/resources/application.properties`:
+
+```properties
+# Servidor
+server.port=8080
+spring.profiles.active=dev
+
+# Base de Dados
+spring.datasource.url=jdbc:postgresql://localhost:5432/sigaplus
+spring.datasource.username=o_teu_utilizador
+spring.datasource.password=a_tua_password
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=false
+
+# JWT
+jwt.secret=a_tua_chave_secreta_jwt
+jwt.expiration=86400000
+
+# JPA
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+```
+
+> Nunca faças commit de credenciais reais. Usa variáveis de ambiente ou um gestor de segredos em produção.
+
+---
+
+## Endpoints da API
+
+> Documentação completa da API em breve (Swagger/OpenAPI). Abaixo está uma visão geral de alto nível da estrutura de recursos planeada.
+
+### Autenticação
+| Método | Endpoint | Descrição |
+|---|---|---|
+| `POST` | `/api/v1/auth/register` | Registar um novo utilizador |
+| `POST` | `/api/v1/auth/login` | Autenticar e receber token JWT |
+
+### Estudantes
+| Método | Endpoint | Descrição |
+|---|---|---|
+| `GET` | `/api/v1/students` | Listar todos os estudantes |
+| `POST` | `/api/v1/students` | Registar um novo estudante |
+| `GET` | `/api/v1/students/{id}` | Obter detalhes de um estudante |
+| `PUT` | `/api/v1/students/{id}` | Actualizar informações do estudante |
+| `DELETE` | `/api/v1/students/{id}` | Remover um estudante |
+
+### Cursos
+| Método | Endpoint | Descrição |
+|---|---|---|
+| `GET` | `/api/v1/courses` | Listar todos os cursos |
+| `POST` | `/api/v1/courses` | Criar um novo curso |
+| `GET` | `/api/v1/courses/{id}` | Obter detalhes de um curso |
+
+### Matrículas
+| Método | Endpoint | Descrição |
+|---|---|---|
+| `POST` | `/api/v1/enrollments` | Matricular um estudante num curso |
+| `GET` | `/api/v1/enrollments/{studentId}` | Obter matrículas de um estudante |
+
+### Notas
+| Método | Endpoint | Descrição |
+|---|---|---|
+| `POST` | `/api/v1/grades` | Lançar uma nota |
+| `GET` | `/api/v1/grades/{studentId}` | Consultar notas de um estudante |
+
+---
+
+## Executar Testes
+
+```bash
+# Executar todos os testes
+./mvnw test
+
+# Executar com saída detalhada
+./mvnw test -Dsurefire.useFile=false
+
+# Executar uma classe de teste específica
+./mvnw test -Dtest=StudentServiceTest
+```
+
+---
+
+## Roadmap
+
+- [ ] Autenticação completa e controlo de acesso por função (ADMIN, DOCENTE, ESTUDANTE)
+- [ ] Gestão completa do ciclo de vida do estudante
+- [ ] Gestão de cursos e currículos
+- [ ] Lançamento de notas e cálculo de média
+- [ ] Gestão de anos lectivos e semestres
+- [ ] Geração de pautas e declarações académicas
+- [ ] Documentação Swagger/OpenAPI
+- [ ] Contenorização com Docker
+- [ ] Configuração de pipeline CI/CD
+
+---
+
+## Autor
+
+**Manuel Massora** — Backend Engineer  
+Maputo, Moçambique
+
+- GitHub: [@ManuelMassora](https://github.com/ManuelMassora)
+- LinkedIn: [manuelt-massora-5bb417375](https://linkedin.com/in/manuelt-massora-5bb417375/)
+- Email: manuelmassora75@gmail.com
+
+---
+
+> Construído com Java · Spring Boot · Maven
